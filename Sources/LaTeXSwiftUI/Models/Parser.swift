@@ -24,6 +24,7 @@
 //
 
 import Foundation
+import RegexBuilder
 
 /// Parses LaTeX equations.
 internal struct Parser {
@@ -41,8 +42,8 @@ internal struct Parser {
   
   /// An inline equation component.
   static let inline = EquationComponent(
-    regex: #/\$(.*?)\$/#,
-    terminatingRegex: #/\$/#,
+    regex: #/\|(.*?)\|/#,
+    terminatingRegex: #/\|/#,
     equation: .inlineEquation)
   
   /// An TeX-style block equation component.
@@ -169,11 +170,11 @@ extension Parser {
     guard let smallestMatch = filteredMatches.min(by: { $0.1.range.lowerBound < $1.1.range.lowerBound }) else {
       return input.isEmpty ? [] : [Component(text: input, type: .text)]
     }
-
+    
     // If the equation supports recursion, then we'll need to find the last
     // match of its terminating regex component.
     let equationRange: Range<String.Index> = smallestMatch.1.range
-
+    
     // We got our equation range, so lets return the components.
     let stringBeforeEquation = String(input[..<equationRange.lowerBound])
     let equationString = String(input[equationRange])
@@ -182,7 +183,7 @@ extension Parser {
     if !stringBeforeEquation.isEmpty {
       components.append(Component(text: stringBeforeEquation, type: .text))
     }
-    components.append(Component(text: equationString, type: smallestMatch.0.equation))
+    components.append(Component(text: equationString.trimmingCharacters(in: CharacterSet(charactersIn: "|")), type: smallestMatch.0.equation))
     if remainingString.isEmpty {
       return components
     }
